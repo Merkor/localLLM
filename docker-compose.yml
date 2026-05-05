@@ -1,0 +1,82 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: local-llm-postgres
+    environment:
+      POSTGRES_DB: local_llm_chat
+      POSTGRES_USER: chat_user
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-chat_password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U chat_user -d local_llm_chat"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  ollama:
+    image: ollama/ollama
+    container_name: ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      OLLAMA_KEEP_ALIVE: ${APP_LLM_KEEP_ALIVE:-1m}
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  ollama-pull:
+    image: ollama/ollama
+    container_name: ollama-pull
+    depends_on:
+      - ollama
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        set -e
+        echo "Waiting for Ollama..."
+        until ollama list >/dev/null 2>&1; do
+          sleep 2
+        done
+        echo "Pulling model ${APP_LLM_MODEL:-qwen2.5:7b-instruct-q4_K_M}..."
+        ollama pull ${APP_LLM_MODEL:-qwen2.5:7b-instruct-q4_K_M}
+        echo "Model ready."
+    restart: "no"
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: local-llm-chat-app
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/local_llm_chat
+      SPRING_DATASOURCE_USERNAME: chat_user
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-chat_password}
+      APP_LLM_BASE_URL: http://ollama:11434
+      APP_LLM_MODEL: ${APP_LLM_MODEL:-qwen2.5:7b-instruct-q4_K_M}
+      APP_LLM_TEMPERATURE: ${APP_LLM_TEMPERATURE:-0.7}
+      APP_LLM_KEEP_ALIVE: ${APP_LLM_KEEP_ALIVE:-1m}
+      APP_LLM_MAX_CONTEXT_MESSAGES: ${APP_LLM_MAX_CONTEXT_MESSAGES:-20}
+      APP_LLM_SYSTEM_PROMPT: ${APP_LLM_SYSTEM_PROMPT:-You are a helpful local AI assistant. Answer clearly and accurately. Pay close attention to spacing in every reply. Always use exactly one space between words in normal prose, including English and Russian text. Never merge words together, never use double spaces between words, and never add a space before punctuation marks.}
+    ports:
+      - "8877:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      ollama-pull:
+        condition: service_completed_successfully
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  ollama_data:

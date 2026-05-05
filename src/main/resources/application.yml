@@ -1,0 +1,58 @@
+spring:
+  application:
+    name: local-llm-chat
+  profiles:
+    default: local
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        format_sql: true
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+
+server:
+  port: ${SERVER_PORT:8080}
+
+logging:
+  level:
+    ru.local.llmchat: INFO
+
+app:
+  llm:
+    base-url: ${APP_LLM_BASE_URL:http://localhost:11434}
+    model: ${APP_LLM_MODEL:qwen2.5:7b-instruct-q4_K_M}
+    temperature: ${APP_LLM_TEMPERATURE:0.7}
+    keep-alive: ${APP_LLM_KEEP_ALIVE:1m}
+    max-context-messages: ${APP_LLM_MAX_CONTEXT_MESSAGES:20}
+    system-prompt: ${APP_LLM_SYSTEM_PROMPT:You are a helpful local AI assistant. Answer clearly and accurately. Pay close attention to spacing in every reply. Always use exactly one space between words in normal prose, including English and Russian text. Never merge words together, never use double spaces between words, and never add a space before punctuation marks.}
+    timeout-seconds: ${APP_LLM_TIMEOUT_SECONDS:180}
+
+---
+spring:
+  config:
+    activate:
+      on-profile: local
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/local_llm_chat}
+    username: ${SPRING_DATASOURCE_USERNAME:chat_user}
+    password: ${SPRING_DATASOURCE_PASSWORD:chat_password}
+    driver-class-name: org.postgresql.Driver
+
+---
+spring:
+  config:
+    activate:
+      on-profile: docker
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://postgres:5432/local_llm_chat}
+    username: ${SPRING_DATASOURCE_USERNAME:chat_user}
+    password: ${SPRING_DATASOURCE_PASSWORD:chat_password}
+    driver-class-name: org.postgresql.Driver
+
+app:
+  llm:
+    base-url: ${APP_LLM_BASE_URL:http://ollama:11434}
