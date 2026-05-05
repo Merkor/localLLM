@@ -19,7 +19,6 @@ import ru.local.llmchat.llm.LlmService;
 import ru.local.llmchat.llm.LlmStreamEvent;
 import ru.local.llmchat.repository.ChatMessageRepository;
 
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -132,7 +131,6 @@ public class MessageService {
         message.setChat(chat);
         message.setRole(MessageRole.USER);
         message.setContent(userMessage);
-        message.setCreatedAt(Instant.now());
         chatMessageRepository.save(message);
 
         chatService.touch(chat);
@@ -153,7 +151,6 @@ public class MessageService {
         message.setModel(properties.getModel());
         message.setDurationMs(durationMs);
         message.setTotalTokens(totalTokens);
-        message.setCreatedAt(Instant.now());
         chatMessageRepository.save(message);
 
         if (assistantMessagesBefore == 0

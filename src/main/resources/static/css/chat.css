@@ -190,9 +190,9 @@ body {
 }
 
 .sidebar-toggle-btn {
-    width: 30px;
-    height: 30px;
-    border-radius: 8px;
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
     border: 1px solid #d8dee7;
     background: #ffffff;
     color: #4b5563;

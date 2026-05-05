@@ -7,6 +7,7 @@ import ru.local.llmchat.entity.ChatSession;
 import ru.local.llmchat.exception.NotFoundException;
 import ru.local.llmchat.repository.ChatRepository;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -61,7 +62,7 @@ public class ChatService {
 
     @Transactional
     public void touch(ChatSession chat) {
-        chat.setUpdatedAt(java.time.Instant.now());
+        chat.setUpdatedAt(Instant.now());
         chatRepository.save(chat);
     }
 
